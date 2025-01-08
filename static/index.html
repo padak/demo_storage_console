@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keboola Storage Browser</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .login-form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .custom-select {
+            position: relative;
+            width: 100%;
+        }
+
+        .select-selected {
+            background-color: white;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .select-selected:after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #666;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .select-items {
+            position: absolute;
+            background-color: white;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 99;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .select-item {
+            padding: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .select-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .cloud-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            color: #666;
+            margin: 0 4px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .buckets-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .bucket-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+
+        .bucket-item:hover {
+            border-color: #007bff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .bucket-header {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px;
+            font-weight: 500;
+        }
+
+        .bucket-header:hover {
+            color: #007bff;
+        }
+
+        .bucket-header i {
+            margin-right: 10px;
+            color: #666;
+            transition: transform 0.2s;
+        }
+
+        .bucket-header.expanded i {
+            transform: rotate(90deg);
+        }
+
+        .tables-list {
+            margin-left: 20px;
+            margin-top: 10px;
+            padding: 10px;
+            border-left: 2px solid #007bff;
+            background-color: white;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .table-item {
+            padding: 10px;
+            margin: 8px 0;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            border: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            background-color: white;
+        }
+
+        .table-item:hover {
+            background-color: #f0f7ff;
+            border-color: #007bff;
+            transform: translateX(5px);
+        }
+
+        .table-item i {
+            margin-right: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .click-hint {
+            font-size: 12px;
+            color: #666;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .table-item:hover .click-hint {
+            opacity: 1;
+        }
+
+        .error {
+            color: #dc3545;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .sign-out {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .sign-out:hover {
+            background-color: #c82333;
+        }
+
+        #signOutButton {
+            display: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 50px auto;
+            padding: 30px;
+            width: 90%;
+            max-width: 900px;
+            border-radius: 12px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 25px;
+            top: 25px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+            transition: all 0.2s;
+        }
+
+        .close-modal:hover {
+            background-color: #e9ecef;
+            color: #333;
+        }
+
+        .table-details {
+            margin-top: 10px;
+        }
+
+        .table-details h3 {
+            margin: 0 0 25px 0;
+            font-size: 24px;
+            color: #2c3e50;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .detail-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s;
+        }
+
+        .detail-group:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-color: #dee2e6;
+        }
+
+        .detail-group h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+        }
+
+        .detail-group h4::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background-color: #007bff;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .detail-item {
+            display: flex;
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .detail-item:hover {
+            background-color: #fff;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            width: 180px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .detail-value {
+            flex: 1;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .detail-value.highlight {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .columns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .column-item {
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+        }
+
+        .column-item .detail-label {
+            width: auto;
+            margin-right: 10px;
+            font-family: monospace;
+        }
+
+        .column-item .detail-value {
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stat-item:hover {
+            border-color: #007bff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 500;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .preview-modal .modal-content {
+            max-width: 1200px;
+        }
+
+        .data-preview {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .preview-table th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 500;
+            color: #495057;
+            position: sticky;
+            top: 0;
+        }
+
+        .preview-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9ecef;
+            color: #2c3e50;
+        }
+
+        .preview-table tr:hover td {
+            background-color: #f8f9fa;
+        }
+
+        .preview-modal h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .preview-modal h3 .badge {
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: normal;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Keboola Storage Browser</h1>
+            <button id="signOutButton" class="sign-out" onclick="signOut()">Sign Out</button>
+        </div>
+        
+        <div class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="token">Storage API Token:</label>
+                <input type="password" id="token" required>
+            </div>
+            <div class="form-group">
+                <label for="endpoint">API Endpoint:</label>
+                <div class="custom-select">
+                    <div class="select-selected" id="selectedEndpoint">Select an endpoint</div>
+                    <div class="select-items" id="endpointItems">
+                        <div class="select-item" data-value="connection.eu-central-1.keboola.com">
+                            🇪🇺 <i class="fab fa-aws cloud-icon"></i> connection.eu-central-1.keboola.com
+                        </div>
+                        <div class="select-item" data-value="connection.keboola.com">
+                            🇺🇸 <i class="fab fa-aws cloud-icon"></i> connection.keboola.com
+                        </div>
+                        <div class="select-item" data-value="connection.north-europe.azure.keboola.com">
+                            🇪🇺 <i class="fab fa-microsoft cloud-icon"></i> connection.north-europe.azure.keboola.com
+                        </div>
+                        <div class="select-item" data-value="connection.europe-west3.gcp.keboola.com">
+                            🇪🇺 <i class="fab fa-google cloud-icon"></i> connection.europe-west3.gcp.keboola.com
+                        </div>
+                        <div class="select-item" data-value="connection.us-east4.gcp.keboola.com">
+                            🇺🇸 <i class="fab fa-google cloud-icon"></i> connection.us-east4.gcp.keboola.com
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="login()">Connect</button>
+            <div id="loginError" class="error"></div>
+        </div>
+
+        <div class="buckets-container" id="bucketsContainer">
+            <h2>Buckets</h2>
+            <div id="bucketsList"></div>
+        </div>
+    </div>
+
+    <!-- Add modal HTML -->
+    <div id="tableModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeTableModal()">&times;</span>
+            <div id="tableDetails" class="table-details">
+                <!-- Table details will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add data preview modal -->
+    <div id="previewModal" class="modal preview-modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closePreviewModal()">&times;</span>
+            <div id="dataPreview">
+                <!-- Data preview will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'keboola_storage_browser_credentials';
+
+        // Load credentials from localStorage on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, initializing dropdown and checking stored credentials...');
+            initializeDropdown();
+            loadStoredCredentials();
+        });
+
+        function initializeDropdown() {
+            const selectSelected = document.querySelector('.select-selected');
+            const selectItems = document.querySelector('.select-items');
+            let selectedValue = '';
+
+            // Toggle dropdown
+            selectSelected.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpening = selectItems.style.display !== 'block';
+                console.log(`Dropdown ${isOpening ? 'opening' : 'closing'}`);
+                selectItems.style.display = isOpening ? 'block' : 'none';
+            });
+
+            // Handle item selection
+            document.querySelectorAll('.select-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    selectedValue = this.getAttribute('data-value');
+                    console.log('Endpoint selected:', {
+                        value: selectedValue,
+                        html: this.innerHTML
+                    });
+                    selectSelected.innerHTML = this.innerHTML;
+                    selectSelected.setAttribute('data-value', selectedValue);
+                    selectItems.style.display = 'none';
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                if (selectItems.style.display === 'block') {
+                    console.log('Closing dropdown (clicked outside)');
+                    selectItems.style.display = 'none';
+                }
+            });
+        }
+
+        function loadStoredCredentials() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                console.log('Found stored credentials');
+                const credentials = JSON.parse(stored);
+                
+                // Set the token
+                document.getElementById('token').value = credentials.token;
+                
+                // Set the endpoint
+                const selectedEndpoint = document.querySelector('.select-selected');
+                const endpointItem = document.querySelector(`.select-item[data-value="${credentials.endpoint}"]`);
+                
+                if (endpointItem) {
+                    selectedEndpoint.innerHTML = endpointItem.innerHTML;
+                    selectedEndpoint.setAttribute('data-value', credentials.endpoint);
+                }
+
+                // Attempt automatic login
+                login(true);
+            }
+        }
+
+        function storeCredentials(token, endpoint) {
+            console.log('Storing credentials in localStorage');
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, endpoint }));
+        }
+
+        function signOut() {
+            console.log('Signing out...');
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('token').value = '';
+            document.querySelector('.select-selected').innerHTML = 'Select an endpoint';
+            document.querySelector('.select-selected').removeAttribute('data-value');
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('bucketsContainer').style.display = 'none';
+            document.getElementById('signOutButton').style.display = 'none';
+        }
+
+        async function login(isAutoLogin = false) {
+            console.log('Login attempt started...');
+            const token = document.getElementById('token').value;
+            const selectedEndpoint = document.querySelector('.select-selected');
+            const endpoint = selectedEndpoint.getAttribute('data-value');
+            const loginError = document.getElementById('loginError');
+
+            console.log('Login details:', {
+                endpoint: endpoint,
+                tokenLength: token ? token.length : 0,
+                hasEndpoint: !!endpoint,
+                isAutoLogin: isAutoLogin
+            });
+
+            if (!endpoint) {
+                console.warn('Login attempted without endpoint selection');
+                loginError.textContent = 'Please select an endpoint';
+                return;
+            }
+
+            if (!token) {
+                console.warn('Login attempted without token');
+                loginError.textContent = 'Please enter your Storage API token';
+                return;
+            }
+
+            try {
+                console.log('Sending login request...');
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ token, endpoint })
+                });
+
+                console.log('Login response received:', {
+                    status: response.status,
+                    ok: response.ok
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Login failed');
+                }
+
+                // Store credentials only on successful login
+                storeCredentials(token, endpoint);
+
+                console.log('Login successful, switching to buckets view');
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('bucketsContainer').style.display = 'block';
+                document.getElementById('signOutButton').style.display = 'block';
+                loadBuckets();
+            } catch (error) {
+                console.error('Login error:', error);
+                loginError.textContent = error.message;
+                if (isAutoLogin) {
+                    // Clear stored credentials if auto-login fails
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+            }
+        }
+
+        async function loadBuckets() {
+            console.log('Loading buckets...');
+            try {
+                const response = await fetch('/api/buckets');
+                console.log('Buckets response received:', {
+                    status: response.status,
+                    ok: response.ok
+                });
+
+                if (!response.ok) throw new Error('Failed to load buckets');
+                
+                const buckets = await response.json();
+                console.log('Buckets loaded:', {
+                    count: buckets.length,
+                    buckets: buckets
+                });
+
+                const bucketsList = document.getElementById('bucketsList');
+                bucketsList.innerHTML = '';
+
+                buckets.forEach(bucket => {
+                    const bucketDiv = document.createElement('div');
+                    bucketDiv.className = 'bucket-item';
+                    bucketDiv.innerHTML = `
+                        <div class="bucket-header" onclick="toggleTables('${bucket.id}', this)">
+                            <i class="fas fa-chevron-right"></i>
+                            ${bucket.name} (${bucket.id})
+                        </div>
+                        <div class="tables-list" id="tables-${bucket.id}" style="display: none;"></div>
+                    `;
+                    bucketsList.appendChild(bucketDiv);
+                });
+            } catch (error) {
+                console.error('Error loading buckets:', error);
+            }
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+
+        function closeTableModal() {
+            document.getElementById('tableModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('tableModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        async function showTableDetails(bucketId, tableId, tableName) {
+            console.log('Fetching table details:', { bucketId, tableId });
+            const modal = document.getElementById('tableModal');
+            const detailsContainer = document.getElementById('tableDetails');
+            
+            try {
+                const response = await fetch(`/api/buckets/${bucketId}/tables/${tableId}`);
+                console.log('Table details response:', {
+                    status: response.status,
+                    ok: response.ok
+                });
+
+                if (!response.ok) throw new Error('Failed to load table details');
+                
+                const details = await response.json();
+                console.log('Table details loaded:', details);
+
+                detailsContainer.innerHTML = `
+                    <h3>${details.name}</h3>
+                    
+                    <div class="detail-group">
+                        <h4>Basic Information</h4>
+                        <div class="detail-item">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value highlight">${details.id}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Primary Key:</span>
+                            <span class="detail-value highlight">${details.primaryKey.length ? details.primaryKey.join(', ') : 'None'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Created:</span>
+                            <span class="detail-value">${formatDate(details.created)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Last Changed:</span>
+                            <span class="detail-value">${formatDate(details.lastImportDate)}</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-group">
+                        <h4>Storage Information</h4>
+                        <div class="stats-grid">
+                            <div class="stat-item" onclick="showTablePreview('${tableId}', '${details.name}')">
+                                <div class="stat-value">${details.rowsCount.toLocaleString()}</div>
+                                <div class="stat-label">Total Rows (click to preview)</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${formatBytes(details.dataSizeBytes)}</div>
+                                <div class="stat-label">Data Size</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${details.backend || 'N/A'}</div>
+                                <div class="stat-label">Backend Type</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${details.columnMetadata ? `
+                    <div class="detail-group">
+                        <h4>Columns</h4>
+                        <div class="columns-grid">
+                            ${Object.entries(details.columnMetadata).map(([column, metadata]) => `
+                                <div class="column-item">
+                                    <span class="detail-label">${column}</span>
+                                    <span class="detail-value">${metadata.type || 'Unknown type'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+
+                modal.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading table details:', error);
+            }
+        }
+
+        async function toggleTables(bucketId, element) {
+            const tablesDiv = document.getElementById(`tables-${bucketId}`);
+            const isExpanding = tablesDiv.style.display === 'none';
+            const header = element.closest('.bucket-header');
+            
+            console.log(`${isExpanding ? 'Expanding' : 'Collapsing'} bucket:`, bucketId);
+            
+            if (isExpanding) {
+                header.classList.add('expanded');
+                try {
+                    console.log('Fetching tables for bucket:', bucketId);
+                    const response = await fetch(`/api/buckets/${bucketId}/tables`);
+                    console.log('Tables response received:', {
+                        status: response.status,
+                        ok: response.ok
+                    });
+
+                    if (!response.ok) throw new Error('Failed to load tables');
+                    
+                    const tables = await response.json();
+                    console.log('Tables loaded:', {
+                        bucketId: bucketId,
+                        count: tables.length,
+                        tables: tables
+                    });
+
+                    tablesDiv.innerHTML = tables.map(table => `
+                        <div class="table-item" onclick="showTableDetails('${bucketId}', '${table.id}', '${table.name}')">
+                            <i class="fas fa-table"></i>
+                            ${table.name} (${table.id})
+                            <span class="click-hint">Click for details</span>
+                        </div>
+                    `).join('');
+                    
+                    tablesDiv.style.display = 'block';
+                } catch (error) {
+                    console.error('Error loading tables:', error);
+                }
+            } else {
+                header.classList.remove('expanded');
+                tablesDiv.style.display = 'none';
+            }
+        }
+
+        function closePreviewModal() {
+            document.getElementById('previewModal').style.display = 'none';
+        }
+
+        async function showTablePreview(tableId, tableName) {
+            console.log('Fetching table preview:', { 
+                tableId,
+                url: `/api/tables/${tableId}/preview`
+            });
+            const modal = document.getElementById('previewModal');
+            const previewContainer = document.getElementById('dataPreview');
+            
+            try {
+                const response = await fetch(`/api/tables/${tableId}/preview`);
+                console.log('Preview response received:', {
+                    status: response.status,
+                    ok: response.ok,
+                    statusText: response.statusText
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response body:', errorText);
+                    throw new Error('Failed to load table preview');
+                }
+                
+                const data = await response.json();
+                console.log('Preview data loaded:', data);
+
+                if (!data.columns || !data.rows) {
+                    console.error('Invalid data format:', data);
+                    throw new Error('Invalid data format received');
+                }
+
+                // Transform the rows data into a more usable format
+                const transformedRows = data.rows.map(row => {
+                    const rowData = {};
+                    row.forEach(cell => {
+                        rowData[cell.columnName] = cell.value;
+                    });
+                    return rowData;
+                });
+
+                previewContainer.innerHTML = `
+                    <h3>
+                        ${tableName}
+                        <span class="badge">Sample Data (${data.rows.length} rows)</span>
+                    </h3>
+                    <div class="data-preview">
+                        <table class="preview-table">
+                            <thead>
+                                <tr>
+                                    ${data.columns.map(col => `<th>${col}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${transformedRows.map(row => `
+                                    <tr>
+                                        ${data.columns.map(col => `<td>${row[col] === null ? '' : row[col]}</td>`).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                modal.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading table preview:', error);
+                previewContainer.innerHTML = `
+                    <h3>
+                        ${tableName}
+                        <span class="badge error">Error Loading Preview</span>
+                    </h3>
+                    <div class="error">
+                        Failed to load table preview: ${error.message}
+                    </div>
+                `;
+                modal.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html> 
