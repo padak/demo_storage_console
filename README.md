@@ -9,6 +9,10 @@ A simple web application that allows you to browse your Keboola Storage buckets 
 - View tables within each bucket
 - Clean and modern user interface
 
+## Screenshot
+
+![Keboola Storage Browser Interface](screenshot.jpg)
+
 ## Prerequisites
 
 - Python 3.7+
