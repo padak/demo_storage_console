@@ -2,14 +2,22 @@ from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import requests
 import os
+from datetime import timedelta
 
 app = Flask(__name__, static_folder='static')
 app.secret_key = os.urandom(24)  # for session management
-CORS(app)
+app.permanent_session_lifetime = timedelta(hours=1)  # session expires after 1 hour
+CORS(app, supports_credentials=True)
 
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+@app.route('/api/session/check', methods=['GET'])
+def check_session():
+    if 'token' not in session or 'endpoint' not in session:
+        return jsonify({'valid': False}), 401
+    return jsonify({'valid': True})
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -26,13 +34,19 @@ def login():
         response = requests.get(f'https://{endpoint}/v2/storage/buckets', headers=headers)
         response.raise_for_status()
         
-        # Store credentials in session
+        # Make session permanent and store credentials
+        session.permanent = True
         session['token'] = token
         session['endpoint'] = endpoint
         
         return jsonify({'message': 'Login successful'})
     except requests.exceptions.RequestException as e:
         return jsonify({'error': str(e)}), 401
+
+@app.route('/api/login', methods=['DELETE'])
+def logout():
+    session.clear()
+    return jsonify({'message': 'Logged out successfully'})
 
 @app.route('/api/buckets', methods=['GET'])
 def list_buckets():

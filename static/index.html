@@ -546,11 +546,27 @@
     <script>
         const STORAGE_KEY = 'keboola_storage_browser_credentials';
 
-        // Load credentials from localStorage on page load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, initializing dropdown and checking stored credentials...');
+            console.log('Page loaded, initializing...');
             initializeDropdown();
-            loadStoredCredentials();
+
+            // Check for stored credentials
+            const storedToken = localStorage.getItem('keboola_token');
+            const storedEndpoint = localStorage.getItem('keboola_endpoint');
+            
+            if (storedToken && storedEndpoint) {
+                console.log('Found stored credentials, attempting to restore session...');
+                // Set the stored values in the form
+                document.getElementById('token').value = storedToken;
+                const selectedEndpoint = document.querySelector('.select-selected');
+                const endpointItem = document.querySelector(`.select-item[data-value="${storedEndpoint}"]`);
+                if (endpointItem) {
+                    selectedEndpoint.innerHTML = endpointItem.innerHTML;
+                    selectedEndpoint.setAttribute('data-value', storedEndpoint);
+                }
+                // Attempt login with stored credentials
+                login(true);
+            }
         });
 
         function initializeDropdown() {
@@ -619,13 +635,28 @@
 
         function signOut() {
             console.log('Signing out...');
-            localStorage.removeItem(STORAGE_KEY);
-            document.getElementById('token').value = '';
-            document.querySelector('.select-selected').innerHTML = 'Select an endpoint';
-            document.querySelector('.select-selected').removeAttribute('data-value');
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('bucketsContainer').style.display = 'none';
-            document.getElementById('signOutButton').style.display = 'none';
+            // Clear local storage
+            localStorage.removeItem('keboola_token');
+            localStorage.removeItem('keboola_endpoint');
+
+            // Clear server session
+            fetch('/api/login', { method: 'DELETE' })
+                .then(() => {
+                    console.log('Server session cleared');
+                })
+                .catch(error => {
+                    console.error('Error clearing server session:', error);
+                })
+                .finally(() => {
+                    // Reset UI regardless of server response
+                    document.querySelector('.login-form').style.display = 'block';
+                    document.querySelector('.buckets-container').style.display = 'none';
+                    document.getElementById('signOutButton').style.display = 'none';
+                    document.getElementById('token').value = '';
+                    const selectedEndpoint = document.querySelector('.select-selected');
+                    selectedEndpoint.innerHTML = 'Select an endpoint';
+                    selectedEndpoint.removeAttribute('data-value');
+                });
         }
 
         async function login(isAutoLogin = false) {
@@ -634,28 +665,19 @@
             const selectedEndpoint = document.querySelector('.select-selected');
             const endpoint = selectedEndpoint.getAttribute('data-value');
             const loginError = document.getElementById('loginError');
-
-            console.log('Login details:', {
-                endpoint: endpoint,
-                tokenLength: token ? token.length : 0,
-                hasEndpoint: !!endpoint,
-                isAutoLogin: isAutoLogin
-            });
+            loginError.textContent = ''; // Clear previous errors
 
             if (!endpoint) {
-                console.warn('Login attempted without endpoint selection');
                 loginError.textContent = 'Please select an endpoint';
                 return;
             }
 
             if (!token) {
-                console.warn('Login attempted without token');
                 loginError.textContent = 'Please enter your Storage API token';
                 return;
             }
 
             try {
-                console.log('Sending login request...');
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
@@ -664,30 +686,30 @@
                     body: JSON.stringify({ token, endpoint })
                 });
 
-                console.log('Login response received:', {
-                    status: response.status,
-                    ok: response.ok
-                });
+                const data = await response.json();
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Login failed');
+                    throw new Error(data.error || 'Login failed');
                 }
 
-                // Store credentials only on successful login
-                storeCredentials(token, endpoint);
+                // Store credentials on successful login
+                localStorage.setItem('keboola_token', token);
+                localStorage.setItem('keboola_endpoint', endpoint);
 
-                console.log('Login successful, switching to buckets view');
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('bucketsContainer').style.display = 'block';
+                // Update UI
+                document.querySelector('.login-form').style.display = 'none';
+                document.querySelector('.buckets-container').style.display = 'block';
                 document.getElementById('signOutButton').style.display = 'block';
-                loadBuckets();
+                
+                // Load buckets
+                await loadBuckets();
             } catch (error) {
                 console.error('Login error:', error);
                 loginError.textContent = error.message;
                 if (isAutoLogin) {
                     // Clear stored credentials if auto-login fails
-                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem('keboola_token');
+                    localStorage.removeItem('keboola_endpoint');
                 }
             }
         }
